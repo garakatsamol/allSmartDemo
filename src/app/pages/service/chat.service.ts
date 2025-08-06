@@ -22,7 +22,7 @@ export interface ChatResponse {
 })
 export class ChatService {
     // Production webhook URL
-    private webhookUrl = 'https://locutus.app.n8n.cloud/webhook-test/e50506fd-9051-46c2-ab67-108db865a79d';
+    private webhookUrl = 'https://locutus.app.n8n.cloud/webhook/e50506fd-9051-46c2-ab67-108db865a79d';
     private useCorsProxy = true; // Enable CORS proxy due to CORS issues
     private defaultHeaders = new HttpHeaders({
         'Content-Type': 'application/json'
