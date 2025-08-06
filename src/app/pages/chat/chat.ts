@@ -53,22 +53,22 @@ interface ChatMessage {
     ],
     providers: [MessageService],
     template: `
-        <div class="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 p-4 sm:p-8 flex flex-col" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);">
+        <div class="min-h-screen bg-slate-50 p-4 sm:p-8 flex flex-col">
             <div class="text-center mb-8">
                 <div class="flex items-center justify-center mb-4">
-                    <img src="assets/allsmart-logo.svg" alt="AllSmart.gr" class="h-12 sm:h-16 drop-shadow-sm">
+                    <img src="assets/allsmart-logo.svg" alt="AllSmart.gr" class="h-12 sm:h-16">
                 </div>
-                <h1 class="m-0 text-slate-800 text-3xl sm:text-4xl font-light flex items-center justify-center gap-3">
+                <h1 class="m-0 text-slate-800 text-2xl sm:text-3xl font-medium flex items-center justify-center gap-3">
                     <i class="pi pi-comments text-blue-600"></i>
                     <span>AllSmart AI Assistant</span>
                 </h1>
-                <p class="mt-2 text-slate-600 text-base sm:text-lg">Powered by n8n • Your Smart Shopping Companion</p>
+                <p class="mt-2 text-slate-600 text-sm sm:text-base">Powered by n8n • Your Smart Shopping Companion</p>
             </div>
             
             <div class="flex-1 flex justify-center items-start">
-                <div class="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-3xl overflow-hidden">
+                <div class="bg-white rounded-lg shadow-sm border border-slate-200 w-full max-w-3xl overflow-hidden">
                     <!-- Configuration Section -->
-                    <div class="px-6 py-4 bg-gradient-to-r from-blue-50 to-slate-50 border-b border-slate-200">
+                    <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
                         <div class="flex justify-between items-center">
                             <div class="flex items-center gap-2">
                                 <p-button 
@@ -110,14 +110,14 @@ interface ChatMessage {
                                         *ngIf="!message.isUser" 
                                         icon="pi pi-robot" 
                                         styleClass="mr-2"
-                                        [style]="{'background-color': '#2563eb', 'color': 'white', 'border': '2px solid #dbeafe'}">
+                                        [style]="{'background-color': '#2563eb', 'color': 'white', 'border': '1px solid #dbeafe'}">
                                     </p-avatar>
                                     
                                     <!-- Message Content -->
-                                    <div class="max-w-[80%] sm:max-w-[70%] rounded-2xl px-4 py-3 relative shadow-sm" 
+                                    <div class="max-w-[80%] sm:max-w-[70%] rounded-lg px-4 py-3 relative" 
                                          [ngClass]="{
-                                            'bg-blue-600 text-white rounded-br-md': message.isUser, 
-                                            'bg-slate-100 text-slate-800 rounded-bl-md border border-slate-200': !message.isUser
+                                            'bg-blue-600 text-white rounded-br-sm': message.isUser, 
+                                            'bg-slate-100 text-slate-800 rounded-bl-sm border border-slate-200': !message.isUser
                                          }">
                                         
                                         <!-- Simple Text Message -->
@@ -127,24 +127,34 @@ interface ChatMessage {
                                         <div *ngIf="message.isProductResponse">
                                             <p *ngIf="message.introText" class="mb-4 text-slate-700">{{ message.introText }}</p>
                                             
-                                            <div *ngFor="let product of message.products" class="bg-gradient-to-br from-white to-blue-50 border border-blue-200 rounded-xl p-6 mb-4 shadow-lg hover:shadow-xl transition-all duration-200 relative overflow-hidden group">
-                                                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-blue-600"></div>
-                                                
-                                                <div class="text-lg font-bold mb-4 text-slate-800 flex items-center gap-2">
-                                                    <span class="text-emerald-500">🟢</span>
-                                                    <span>{{ product.title }}</span>
+                                            <div *ngFor="let product of message.products" class="bg-white border border-slate-200 rounded-lg p-5 mb-4 hover:shadow-lg transition-shadow duration-200 group">
+                                                <!-- Product Title with Green Indicator -->
+                                                <div class="text-base font-semibold mb-3 text-slate-900 leading-snug">
+                                                    🟢 {{ product.title }}
                                                 </div>
                                                 
-                                                <img [src]="product.image" [alt]="product.title" class="mx-auto my-4 max-w-[160px] max-h-[160px] rounded-lg shadow-md border-2 border-blue-100 group-hover:scale-105 transition-transform duration-200" />
-                                                
-                                                <p *ngIf="product.description" class="italic text-slate-600 my-4 text-center">{{ product.description }}</p>
-                                                
-                                                <div class="flex flex-col gap-2 w-full items-center my-4">
-                                                    <span *ngIf="product.price" class="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white font-bold text-base px-3 py-1 rounded-md shadow-sm">{{ product.price }}</span>
-                                                    <span *ngIf="product.availability" class="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-sm px-2 py-1 rounded-md shadow-sm">{{ product.availability }}</span>
+                                                <!-- Product Image -->
+                                                <div class="flex justify-center mb-4">
+                                                    <img [src]="product.image" [alt]="product.title" 
+                                                         class="max-w-[140px] max-h-[140px] object-contain rounded border border-slate-100" />
                                                 </div>
                                                 
-                                                <a *ngIf="product.link" [href]="product.link" target="_blank" rel="noopener" class="block w-full sm:w-auto text-center mt-4 px-6 py-3 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-lg font-semibold text-base hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                                                <!-- Product Description -->
+                                                <p *ngIf="product.description" class="text-sm text-slate-600 mb-4 text-center leading-relaxed">{{ product.description }}</p>
+                                                
+                                                <!-- Price and Availability Section -->
+                                                <div class="space-y-2 mb-4">
+                                                    <div *ngIf="product.price" class="text-center">
+                                                        <span class="text-lg font-bold text-slate-900">{{ product.price }}</span>
+                                                    </div>
+                                                    <div *ngIf="product.availability" class="text-center">
+                                                        <span class="text-sm text-emerald-600 font-medium">📦 {{ product.availability }}</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Action Button -->
+                                                <a *ngIf="product.link" [href]="product.link" target="_blank" rel="noopener" 
+                                                   class="block w-full text-center py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors duration-200">
                                                     Δείτε περισσότερα
                                                 </a>
                                             </div>
@@ -166,7 +176,7 @@ interface ChatMessage {
                                         *ngIf="message.isUser" 
                                         icon="pi pi-user" 
                                         styleClass="ml-2"
-                                        [style]="{'background-color': '#059669', 'color': 'white', 'border': '2px solid #d1fae5'}">
+                                        [style]="{'background-color': '#059669', 'color': 'white', 'border': '1px solid #d1fae5'}">
                                     </p-avatar>
                                 </div>
                             </div>
@@ -177,9 +187,9 @@ interface ChatMessage {
                                     <p-avatar 
                                         icon="pi pi-robot" 
                                         styleClass="mr-2"
-                                        [style]="{'background-color': '#2563eb', 'color': 'white', 'border': '2px solid #dbeafe'}">
+                                        [style]="{'background-color': '#2563eb', 'color': 'white', 'border': '1px solid #dbeafe'}">
                                     </p-avatar>
-                                    <div class="rounded-bl-md bg-slate-100 border border-slate-200 px-4 py-3">
+                                    <div class="rounded-bl-sm bg-slate-100 border border-slate-200 px-4 py-3">
                                         <div class="flex items-center gap-0.5">
                                             <span class="h-2 w-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
                                             <span class="h-2 w-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
@@ -194,7 +204,7 @@ interface ChatMessage {
                     <p-divider></p-divider>
                     
                     <!-- Message Input Area -->
-                    <div class="p-6 bg-gradient-to-r from-slate-50 to-blue-50 border-t border-slate-200">
+                    <div class="p-6 bg-slate-50 border-t border-slate-200">
                         <div class="flex gap-2 items-center">
                             <input 
                                 type="text" 
