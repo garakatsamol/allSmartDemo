@@ -58,11 +58,8 @@ interface ChatMessage {
                 <div class="flex items-center justify-center mb-4">
                     <img src="assets/allsmart-logo.svg" alt="AllSmart.gr" class="h-12 sm:h-16">
                 </div>
-                <h1 class="m-0 text-slate-800 text-2xl sm:text-3xl font-medium flex items-center justify-center gap-3">
-                    <i class="pi pi-comments text-blue-600"></i>
-                    <span>AllSmart AI Assistant</span>
-                </h1>
-                <p class="mt-2 text-slate-600 text-sm sm:text-base">Powered by n8n • Your Smart Shopping Companion</p>
+                
+                <p class="mt-2 text-slate-600 text-sm sm:text-base">Your Smart Shopping Companion</p>
             </div>
             
             <div class="flex-1 flex justify-center items-start">
@@ -71,14 +68,6 @@ interface ChatMessage {
                     <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
                         <div class="flex justify-between items-center">
                             <div class="flex items-center gap-2">
-                                <p-button 
-                                    icon="pi pi-cog" 
-                                    size="small"
-                                    severity="secondary"
-                                    (onClick)="showConfigDialog = true"
-                                    label="Configure"
-                                    styleClass="bg-blue-600 hover:bg-blue-700 border-blue-600">
-                                </p-button>
                                 <span class="text-sm flex items-center gap-1" 
                                       [ngClass]="{'text-emerald-600': isConnected, 'text-red-600': !isConnected}">
                                     <i class="pi" [ngClass]="{'pi-circle-fill': isConnected, 'pi-circle': !isConnected}"></i>
@@ -320,25 +309,13 @@ export class Chat implements OnInit {
     ) {}
 
     ngOnInit() {
-        // Add welcome message
-        this.addMessage('Hello! I\'m your AI assistant. How can I help you today?', false);
+        // Add welcome message in Greek
+        this.addMessage('Γεια σας! Είμαι ο εικονικός σας βοηθός. Πώς μπορώ να σας βοηθήσω σήμερα;', false);
         
         // Load current webhook settings
         this.tempWebhookUrl = this.chatService.getWebhookUrl();
         this.useCorsProxy = this.chatService.isCorsProxyEnabled();
         this.updateConnectionStatus();
-        
-        // Add setup message
-        setTimeout(() => {
-            this.addMessage('🌐 Production chat interface ready. Use the configuration button to set up your n8n webhook URL.', false);
-        }, 500);
-        
-        // Add CORS help message if proxy is enabled
-        if (this.useCorsProxy) {
-            setTimeout(() => {
-                this.addMessage('🔧 CORS Proxy is enabled. Configure your n8n webhook with proper CORS headers, then disable the proxy for better performance.', false);
-            }, 1000);
-        }
     }
 
 
@@ -476,13 +453,13 @@ export class Chat implements OnInit {
                 },
                 error: (error) => {
                     console.error('Error sending message to assistant:', error);
-                    this.addMessage('I apologize, but I\'m having trouble connecting to the assistant service. Please check your n8n webhook configuration.', false);
+                    this.addMessage('Συγγνώμη, αλλά αντιμετωπίζω πρόβλημα σύνδεσης με την υπηρεσία. Παρακαλώ ελέγξτε τη διαμόρφωση.', false);
                     this.isTyping = false;
                 }
             });
         } catch (error) {
             console.error('Error sending message to assistant:', error);
-            this.addMessage('I apologize, but I encountered an error processing your request.', false);
+            this.addMessage('Συγγνώμη, αλλά προέκυψε ένα σφάλμα κατά την επεξεργασία του αιτήματός σας.', false);
             this.isTyping = false;
         }
     }
@@ -490,7 +467,7 @@ export class Chat implements OnInit {
     clearChat() {
         this.messages = [];
         this.messageCounter = 1;
-        this.addMessage('Chat cleared. How can I help you?', false);
+        this.addMessage('Συνομιλία καθαρίστηκε. Πώς μπορώ να σας βοηθήσω;', false);
     }
 
     saveConfig() {
@@ -515,7 +492,7 @@ export class Chat implements OnInit {
         });
         
         // Add a message about the configuration
-        this.addMessage('🔗 Production webhook URL configured successfully!', false);
+        this.addMessage('🔗 Η σύνδεση διαμορφώθηκε επιτυχώς!', false);
     }
 
     cancelConfig() {
