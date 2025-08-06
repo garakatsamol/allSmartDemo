@@ -23,7 +23,7 @@ export interface ChatResponse {
 export class ChatService {
     // Production webhook URL
     private webhookUrl = 'https://locutus.app.n8n.cloud/webhook/e50506fd-9051-46c2-ab67-108db865a79d';
-    private useCorsProxy = true; // Enable CORS proxy due to CORS issues
+    private useCorsProxy = false; // Try direct connection first
     private defaultHeaders = new HttpHeaders({
         'Content-Type': 'application/json'
     });
@@ -73,8 +73,8 @@ export class ChatService {
 
         // Use CORS proxy if enabled
         if (this.useCorsProxy) {
-            // Use a CORS proxy that supports POST requests
-            const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(this.webhookUrl);
+            // Use allorigins proxy which is more reliable
+            const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(this.webhookUrl);
             
             return this.http.post<any>(proxyUrl, payload, {
                 headers: this.defaultHeaders
@@ -274,7 +274,7 @@ export class ChatService {
 
         // Use proxy for testing if enabled
         if (this.useCorsProxy) {
-            const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(this.webhookUrl);
+            const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(this.webhookUrl);
             const testPayload: ChatRequest = {
                 message: 'connection_test',
                 timestamp: new Date().toISOString()
