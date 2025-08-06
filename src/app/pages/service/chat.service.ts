@@ -10,9 +10,36 @@ export interface ChatRequest {
     sessionId?: string;
 }
 
+export interface Product {
+    id?: number;
+    sku?: string;
+    title?: string;
+    url?: string;
+    price?: string;
+    oldPrice?: string;
+    priceNumeric?: number;
+    points?: string;
+    imageUrl?: string;
+    description?: string;
+    discountTag?: string;
+    category?: string;
+    availability?: string;
+    extractedAt?: string;
+    source?: string;
+    sourceUrl?: string;
+    pageNumber?: number;
+    detectionMethod?: string;
+    elementTagName?: string;
+    elementClass?: string;
+    elementId?: string;
+}
+
 export interface ChatResponse {
-    reply: string;
-    timestamp: string;
+    reply?: string; // For simple text or fallback responses
+    intro?: string; // For product responses
+    products?: Product[]; // For product responses
+    outro?: string; // For product responses
+    timestamp?: string;
     confidence?: number;
     metadata?: any;
 }
@@ -21,31 +48,78 @@ export interface ChatResponse {
     providedIn: 'root'
 })
 export class ChatService {
-    // Production webhook URL
-    private webhookUrl = 'https://locutus.app.n8n.cloud/webhook/e50506fd-9051-46c2-ab67-108db865a79d';
-    private useCorsProxy = false; // Try direct connection first
+    // Webhook URLs
+    private productionWebhookUrl = 'https://locutus.app.n8n.cloud/webhook/e50506fd-9051-46c2-ab67-108db865a79d';
+    private useCorsProxy = true; // Enable CORS proxy - n8n has CORS misconfiguration (=* instead of *)
     private defaultHeaders = new HttpHeaders({
         'Content-Type': 'application/json'
     });
 
-    constructor(private http: HttpClient) {}
+    constructor(private http: HttpClient) {
+        console.log('🚀 ChatService initialized');
+        console.log(`📍 Production webhook: ${this.productionWebhookUrl}`);
+        console.log(`🌐 CORS proxy enabled: ${this.useCorsProxy}`);
+    }
 
     /**
      * Set the production webhook URL
      * @param url The webhook URL from your n8n workflow
      */
     setWebhookUrl(url: string): void {
-        this.webhookUrl = url;
+        this.productionWebhookUrl = url;
         console.log('Production webhook URL updated:', url);
     }
 
     /**
-     * Get the current webhook URL
+     * Set the test webhook URL
+     * @param url The test webhook URL from your n8n workflow
+     */
+
+    // Removed setTestWebhookUrl (test mode not supported)
+
+    /**
+     * Get the current active webhook URL (test or production)
      * @returns Current webhook URL
      */
     getWebhookUrl(): string {
-        return this.webhookUrl;
+        console.log(`🔗 Current webhook URL (PRODUCTION mode):`, this.productionWebhookUrl);
+        return this.productionWebhookUrl;
     }
+
+    /**
+     * Get the production webhook URL
+     * @returns Production webhook URL
+     */
+
+    // getProductionWebhookUrl() is redundant, use getWebhookUrl()
+
+    /**
+     * Get the test webhook URL
+     * @returns Test webhook URL
+     */
+
+    // Removed getTestWebhookUrl (test mode not supported)
+
+    /**
+     * Switch between test and production mode
+     * @param testMode True for test mode, false for production mode
+     */
+
+    // Removed setTestMode (test mode not supported)
+
+    /**
+     * Check if currently in test mode
+     * @returns True if in test mode, false if in production mode
+     */
+
+    // Removed isInTestMode (test mode not supported)
+
+    /**
+     * Get current mode as string
+     * @returns 'TEST' or 'PRODUCTION'
+     */
+
+    // Removed getCurrentMode (test mode not supported)
 
     /**
      * Send a message to the n8n assistant
@@ -55,7 +129,9 @@ export class ChatService {
      * @returns Observable with the assistant's response
      */
     sendMessage(message: string, userId?: string, sessionId?: string): Observable<ChatResponse> {
-        if (!this.webhookUrl) {
+
+        const webhookUrl = this.getWebhookUrl();
+        if (!webhookUrl) {
             console.warn('No webhook URL configured');
             return this.getFallbackResponse(message);
         }
@@ -67,175 +143,32 @@ export class ChatService {
             sessionId: sessionId
         };
 
-        console.log('Sending message to webhook:', this.webhookUrl);
+        console.log(`Sending message to webhook (PRODUCTION mode):`, webhookUrl);
         console.log('Payload:', JSON.stringify(payload, null, 2));
         console.log('CORS proxy enabled:', this.useCorsProxy);
 
         // Use CORS proxy if enabled
         if (this.useCorsProxy) {
-            // Use allorigins proxy which is more reliable
-            const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(this.webhookUrl);
+            // Try multiple CORS proxies as fallback - corsproxy.io works best
+            const proxies = [
+                'https://corsproxy.io/?',
+                'https://api.allorigins.win/raw?url=',
+                'https://cors-anywhere.herokuapp.com/'
+            ];
             
-            return this.http.post<any>(proxyUrl, payload, {
-                headers: this.defaultHeaders
-            }).pipe(
-                map(response => {
-                    console.log('✅ Received response from n8n via proxy:', response);
-                    console.log('Response type:', typeof response);
-                    console.log('Response structure:', JSON.stringify(response, null, 2));
-                    
-                    // Handle array response with output field (your n8n format)
-                    if (Array.isArray(response) && response.length > 0 && response[0].output) {
-                        console.log('Extracting from array response with output field');
-                        const formattedReply = this.formatResponse(response[0].output);
-                        return {
-                            reply: formattedReply,
-                            timestamp: new Date().toISOString()
-                        };
-                    }
-                    
-                    // Handle different response formats from n8n
-                    if (typeof response === 'string') {
-                        console.log('Converting string response to ChatResponse format');
-                        const formattedReply = this.formatResponse(response);
-                        return {
-                            reply: formattedReply,
-                            timestamp: new Date().toISOString()
-                        };
-                    }
-                    
-                    // If response has a 'reply' field, use it directly
-                    if (response && response.reply) {
-                        console.log('Using response.reply field');
-                        return response;
-                    }
-                    
-                    // If response has a 'message' field, map it to 'reply'
-                    if (response && response.message) {
-                        console.log('Mapping response.message to reply');
-                        const formattedReply = this.formatResponse(response.message);
-                        return {
-                            reply: formattedReply,
-                            timestamp: response.timestamp || new Date().toISOString(),
-                            confidence: response.confidence,
-                            metadata: response.metadata
-                        };
-                    }
-                    
-                    // If response has an 'output' field (single object)
-                    if (response && response.output) {
-                        console.log('Using response.output field');
-                        const formattedReply = this.formatResponse(response.output);
-                        return {
-                            reply: formattedReply,
-                            timestamp: new Date().toISOString()
-                        };
-                    }
-                    
-                    // If response is an object but doesn't have expected fields, stringify it
-                    if (response && typeof response === 'object') {
-                        console.log('Converting object response to string');
-                        return {
-                            reply: JSON.stringify(response),
-                            timestamp: new Date().toISOString()
-                        };
-                    }
-                    
-                    // Fallback
-                    console.log('Using fallback response format');
-                    return {
-                        reply: String(response || 'Received response from n8n but could not parse it'),
-                        timestamp: new Date().toISOString()
-                    };
-                }),
-                catchError(error => {
-                    console.error('Error calling webhook via proxy:', error);
-                    console.error('Full error details:', {
-                        status: error.status,
-                        statusText: error.statusText,
-                        url: error.url,
-                        message: error.message,
-                        error: error.error
-                    });
-                    return this.getFallbackResponse(message);
-                })
-            );
+            return this.tryWithProxies(proxies, payload);
         }
 
-        return this.http.post<any>(this.webhookUrl, payload, {
+        // Direct POST request
+        return this.http.post<any>(webhookUrl, payload, {
             headers: this.defaultHeaders
         }).pipe(
             map(response => {
-                console.log('✅ Received response from n8n directly:', response);
-                console.log('Response type:', typeof response);
-                console.log('Response structure:', JSON.stringify(response, null, 2));
-                
-                // Handle array response with output field (your n8n format)
-                if (Array.isArray(response) && response.length > 0 && response[0].output) {
-                    console.log('Extracting from array response with output field');
-                    const formattedReply = this.formatResponse(response[0].output);
-                    return {
-                        reply: formattedReply,
-                        timestamp: new Date().toISOString()
-                    };
-                }
-                
-                // Handle different response formats from n8n
-                if (typeof response === 'string') {
-                    console.log('Converting string response to ChatResponse format');
-                    const formattedReply = this.formatResponse(response);
-                    return {
-                        reply: formattedReply,
-                        timestamp: new Date().toISOString()
-                    };
-                }
-                
-                // If response has a 'reply' field, use it directly
-                if (response && response.reply) {
-                    console.log('Using response.reply field');
-                    return response;
-                }
-                
-                // If response has a 'message' field, map it to 'reply'
-                if (response && response.message) {
-                    console.log('Mapping response.message to reply');
-                    const formattedReply = this.formatResponse(response.message);
-                    return {
-                        reply: formattedReply,
-                        timestamp: response.timestamp || new Date().toISOString(),
-                        confidence: response.confidence,
-                        metadata: response.metadata
-                    };
-                }
-                
-                // If response has an 'output' field (single object)
-                if (response && response.output) {
-                    console.log('Using response.output field');
-                    const formattedReply = this.formatResponse(response.output);
-                    return {
-                        reply: formattedReply,
-                        timestamp: new Date().toISOString()
-                    };
-                }
-                
-                // If response is an object but doesn't have expected fields, stringify it
-                if (response && typeof response === 'object') {
-                    console.log('Converting object response to string');
-                    return {
-                        reply: JSON.stringify(response),
-                        timestamp: new Date().toISOString()
-                    };
-                }
-                
-                // Fallback
-                console.log('Using fallback response format');
-                return {
-                    reply: String(response || 'Received response from n8n but could not parse it'),
-                    timestamp: new Date().toISOString()
-                };
+                console.log(`✅ Received response from n8n directly (PRODUCTION mode):`, response);
+                return this.processResponse(response);
             }),
             catchError(error => {
-                console.error('Error calling webhook:', error);
+                console.error('Error calling webhook directly:', error);
                 console.error('Full error details:', {
                     status: error.status,
                     statusText: error.statusText,
@@ -246,15 +179,20 @@ export class ChatService {
                 
                 // Provide more specific error messages
                 if (error.status === 0) {
-                    console.error('CORS error detected. Your n8n workflow needs proper CORS headers.');
-                    console.error('Add these headers to your "Respond to Webhook" node:');
-                    console.error('{"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type"}');
+                    console.error('CORS error detected. Falling back to CORS proxy...');
+                    // Try with CORS proxy as fallback - corsproxy.io works best
+                    const proxies = [
+                        'https://corsproxy.io/?',
+                        'https://api.allorigins.win/raw?url=',
+                        'https://cors-anywhere.herokuapp.com/'
+                    ];
+                    return this.tryWithProxies(proxies, payload);
                 } else if (error.status === 404) {
                     console.error('Webhook not found. Check your n8n webhook URL and ensure the workflow is active.');
                 } else if (error.status === 500) {
                     console.error('Server error in n8n workflow. Check your workflow execution logs.');
                 }
-                
+
                 return this.getFallbackResponse(message);
             })
         );
@@ -264,54 +202,8 @@ export class ChatService {
      * Test the connection to the n8n webhook
      * @returns Observable with connection status
      */
-    testConnection(): Observable<boolean> {
-        if (!this.webhookUrl) {
-            console.warn('No webhook URL configured');
-            return of(false);
-        }
 
-        console.log('Testing connection to webhook:', this.webhookUrl);
-
-        // Use proxy for testing if enabled
-        if (this.useCorsProxy) {
-            const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(this.webhookUrl);
-            const testPayload: ChatRequest = {
-                message: 'connection_test',
-                timestamp: new Date().toISOString()
-            };
-
-            return this.http.post(proxyUrl, testPayload, {
-                headers: this.defaultHeaders
-            }).pipe(
-                map(() => {
-                    console.log('✅ Connection test successful');
-                    return true;
-                }),
-                catchError((error) => {
-                    console.error('❌ Connection test via proxy failed:', error);
-                    return of(false);
-                })
-            );
-        }
-
-        const testPayload: ChatRequest = {
-            message: 'connection_test',
-            timestamp: new Date().toISOString()
-        };
-
-        return this.http.post(this.webhookUrl, testPayload, {
-            headers: this.defaultHeaders
-        }).pipe(
-            map(() => {
-                console.log('✅ Connection test successful');
-                return true;
-            }),
-            catchError((error) => {
-                console.error('❌ Connection test failed:', error);
-                return of(false);
-            })
-        );
-    }
+    // Removed testConnection (test mode not supported)
 
     /**
      * Enable or disable CORS proxy for development
@@ -374,40 +266,182 @@ export class ChatService {
     }
 
     /**
+     * Try multiple CORS proxies as fallback
+     */
+    private tryWithProxies(proxies: string[], payload: ChatRequest): Observable<ChatResponse> {
+        console.log('Using CORS proxies for POST request (n8n webhook only accepts POST)');
+        // n8n webhooks typically only accept POST requests, so go directly to proxy fallback
+        return this.tryProxiesSequentially(proxies, payload, 0);
+    }
+
+    /**
+     * Try CORS proxies sequentially
+     */
+    private tryProxiesSequentially(proxies: string[], payload: ChatRequest, index: number): Observable<ChatResponse> {
+        if (index >= proxies.length) {
+            console.error('All CORS proxies failed');
+            return this.getFallbackResponse(payload.message);
+        }
+
+        const webhookUrl = this.getWebhookUrl();
+        const proxyUrl = proxies[index] + encodeURIComponent(webhookUrl);
+        
+        return this.http.post<any>(proxyUrl, payload, {
+            headers: this.defaultHeaders
+        }).pipe(
+            map(response => {
+                console.log(`✅ Received response from proxy ${index + 1} (PRODUCTION mode):`, response);
+                return this.processResponse(response);
+            }),
+            catchError(error => {
+                console.log(`Proxy ${index + 1} failed, trying next...`);
+                return this.tryProxiesSequentially(proxies, payload, index + 1);
+            })
+        );
+    }
+
+    /**
+     * Process the response from n8n (test or production)
+     */
+    private processResponse(response: any): ChatResponse {
+        console.log(`Processing response (PRODUCTION mode):`, response);
+        console.log('Response type:', typeof response);
+        console.log('Response structure:', JSON.stringify(response, null, 2));
+
+        // Handle the new JSON format with intro/outro/products
+        if (response && Array.isArray(response.products)) {
+            return {
+                intro: response.intro,
+                products: response.products,
+                outro: response.outro,
+                timestamp: new Date().toISOString()
+            };
+        }
+        
+        // Handle array response with output field (your n8n format)
+        if (Array.isArray(response) && response.length > 0 && response[0].output) {
+            console.log('Extracting from array response with output field');
+            const output = response[0].output;
+            // Check if the output is a JSON string
+            try {
+                const parsedOutput = JSON.parse(output);
+                if(parsedOutput.products) {
+                    return {
+                        intro: parsedOutput.intro,
+                        products: parsedOutput.products,
+                        outro: parsedOutput.outro,
+                        timestamp: new Date().toISOString()
+                    };
+                }
+            } catch (e) {
+                // Not a JSON string, treat as plain text
+            }
+            return {
+                reply: output,
+                timestamp: new Date().toISOString()
+            };
+        }
+        
+        // Handle different response formats from n8n
+        if (typeof response === 'string') {
+            console.log('Converting string response to ChatResponse format');
+            return {
+                reply: response,
+                timestamp: new Date().toISOString()
+            };
+        }
+        
+        // If response has a 'reply' field, use it directly
+        if (response && response.reply) {
+            console.log('Using response.reply field');
+            return {
+                ...response,
+                reply: response.reply
+            };
+        }
+        
+        // If response has a 'message' field, map it to 'reply'
+        if (response && response.message) {
+            console.log('Mapping response.message to reply');
+            return {
+                reply: response.message,
+                timestamp: response.timestamp || new Date().toISOString(),
+                confidence: response.confidence,
+                metadata: response.metadata
+            };
+        }
+        
+        // If response has an 'output' field (single object)
+        if (response && response.output) {
+            console.log('Using response.output field');
+            return {
+                reply: response.output,
+                timestamp: new Date().toISOString()
+            };
+        }
+        
+        // If response is an object but doesn't have expected fields, stringify it
+        if (response && typeof response === 'object') {
+            console.log('Converting object response to string');
+            return {
+                reply: JSON.stringify(response),
+                timestamp: new Date().toISOString()
+            };
+        }
+        
+        // Fallback
+        console.log('Using fallback response format');
+        return {
+            reply: String(response || 'Received response from n8n but could not parse it'),
+            timestamp: new Date().toISOString()
+        };
+    }
+
+    /**
      * Format the response text to improve readability
      * @param text The raw response text
      * @returns Formatted text with proper line breaks and structure
      */
-    private formatResponse(text: string): string {
-        if (!text || typeof text !== 'string') {
-            return String(text || '');
-        }
-
-        // Clean up the text
-        let formatted = text.trim();
-
-        // Handle numbered lists (improve spacing)
-        formatted = formatted.replace(/(\d+\.\s)/g, '\n$1');
-
-        // Handle bullet points
-        formatted = formatted.replace(/\*\*(.*?)\*\*/g, '$1'); // Remove markdown bold
-        formatted = formatted.replace(/([🔸🔹•·\-\*])\s*([A-Z])/g, '\n$1 $2'); // Add line breaks before bullet points
-
-        // Handle price information (Greek format)
-        formatted = formatted.replace(/(\d+,\d+\s*€)/g, ' $1');
-
-        // Handle links - make them more readable
-        formatted = formatted.replace(/\[Προβολή\]\((https?:\/\/[^\)]+)\)/g, '\n🔗 Δείτε περισσότερα: $1');
-
-        // Handle emojis - add space after them
-        formatted = formatted.replace(/([\u{1F300}-\u{1F9FF}])([A-Za-zΑ-Ωα-ωάέήίόύώ])/gu, '$1 $2');
-
-        // Clean up multiple line breaks
-        formatted = formatted.replace(/\n{3,}/g, '\n\n');
-
-        // Remove leading/trailing whitespace
-        formatted = formatted.trim();
-
-        return formatted;
+   private formatResponse(text: string): string {
+    if (!text || typeof text !== 'string') {
+        return String(text || '');
     }
+
+    let formatted = text.trim();
+
+    // ✅ Fix specifically broken markdown links from n8n, which may add extra characters and newlines before the closing parenthesis.
+    // e.g., .../some-url/))\n\n🟢\n) -> .../some-url/)
+    formatted = formatted.replace(/\((https?:\/\/[^\s\)]+)[^\)]*\)/g, '($1)');
+
+    // ✅ Fix specifically broken markdown links from n8n, which may add extra characters and newlines before the closing parenthesis.
+    // e.g., .../some-url/))\n\n🟢\n) -> .../some-url/)
+    formatted = formatted.replace(/\((https?:\/\/[^\s\)]+)[^\)]*\)/g, '($1)');
+
+    // ✅ Fix specifically broken markdown links from n8n, which may add extra characters and newlines before the closing parenthesis.
+    // e.g., .../some-url/))\n\n🟢\n) -> .../some-url/)
+    formatted = formatted.replace(/\((https?:\/\/[^\s\)]+)[^\)]*\)/g, '($1)');
+
+    // ✅ Fix image URLs with linebreaks (even weird multi-line splits)
+    formatted = formatted.replace(/🖼️\s*((https?:\/\/[^\s\n\r)]+)[\s\n\r]+([^\s\n\r)]+))/g, (match, fullUrl, part1, part2) => {
+        const cleanUrl = (part1 + part2).replace(/\s+/g, '');
+        return `🖼️ ${cleanUrl}`;
+    });
+
+    // ✅ Fix all other generic URL breaks
+    formatted = formatted.replace(/(https?:\/\/[^\s\n\r]*?)\s*\n\s*([^\s\n\r]*)/g, (match, part1, part2) => {
+        return (part1 + part2).replace(/\s+/g, '');
+    });
+
+    // 🛠️ Normalize product links
+    formatted = formatted.replace(/\[Προβολή\]\((https?:\/\/[^\)]+)\)/g, '🔗 Δείτε περισσότερα: $1');
+    formatted = formatted.replace(/🔗\s*Δείτε περισσότερα:\s*\n\s*(https?:\/\/[^\s]+)/g, '🔗 Δείτε περισσότερα: $1');
+
+    // 🧹 Clean up
+    formatted = formatted.replace(/(\d+,\d+\s*€)/g, ' $1');
+    formatted = formatted.replace(/([\u{1F300}-\u{1F9FF}])([A-Za-zΑ-Ωα-ωάέήίόύώ])/gu, '$1 $2');
+    formatted = formatted.replace(/\n{3,}/g, '\n\n');
+
+    return formatted.trim();
+}
+
 }
