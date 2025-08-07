@@ -24,6 +24,8 @@ export interface Product {
     discountTag?: string;
     category?: string;
     availability?: string;
+    size?: string; // Added
+    color?: string; // Added
     extractedAt?: string;
     source?: string;
     sourceUrl?: string;

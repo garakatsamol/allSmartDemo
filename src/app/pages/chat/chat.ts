@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChatService, Product, ChatResponse } from '../service/chat.service';
 import { MessageService } from 'primeng/api';
+import { TruncateWordsPipe } from './truncate-words.pipe';
 
 // Interfaces are now imported from the service
 
@@ -20,7 +21,7 @@ interface ChatMessage {
 @Component({
     selector: 'app-chat',
     standalone: true,
-    imports: [CommonModule, FormsModule],
+    imports: [CommonModule, FormsModule, TruncateWordsPipe],
     providers: [ChatService, MessageService],
     template: `
         <div class="min-h-screen bg-slate-50 p-4 sm:p-8 flex flex-col">
@@ -63,14 +64,38 @@ interface ChatMessage {
                                             <div *ngFor="let product of message.products" class="mx-auto w-full transform overflow-hidden rounded-lg bg-white dark:bg-slate-800 shadow-md duration-300 hover:scale-105 hover:shadow-lg mb-4">
                                                 <img class="h-48 w-full object-cover object-center" [src]="product.imageUrl" [alt]="product.title" onerror="this.src='https://via.placeholder.com/200x200/2563eb/ffffff?text=AllSmart.gr'" />
                                                 <div class="p-4">
-                                                    <h2 class="mb-2 text-lg font-medium dark:text-white text-gray-900">{{ product.title }}</h2>
-                                                    <p *ngIf="product.description" class="mb-2 text-base dark:text-gray-300 text-gray-700">{{ product.description }}</p>
-                                                    <div class="flex items-center mb-3">
-                                                        <p *ngIf="product.price" class="mr-2 text-lg font-semibold text-gray-900 dark:text-white">{{ product.price }}</p>
-                                                        <!-- Availability can be styled similarly -->
-                                                        <p *ngIf="product.availability" class="ml-auto text-base font-medium text-green-500">{{ product.availability }}</p>
+                                                    <h2 class="mb-4 text-lg font-medium dark:text-white text-gray-900">{{ product.title }}</h2>
+                                                    
+                                                    <div class="space-y-2 text-sm">
+                                                        <div *ngIf="product.price" class="flex justify-between">
+                                                            <span class="font-semibold text-gray-600 dark:text-gray-300">Τιμή:</span>
+                                                            <span class="font-semibold text-gray-900 dark:text-white">{{ product.price }}</span>
+                                                        </div>
+                                                        <div *ngIf="product.oldPrice" class="flex justify-between">
+                                                            <span class="font-semibold text-gray-600 dark:text-gray-300">Αρχική Τιμή:</span>
+                                                            <span class="text-gray-500 line-through">{{ product.oldPrice }}</span>
+                                                        </div>
+                                                        <div *ngIf="product.availability" class="flex justify-between items-center">
+                                                            <span class="font-semibold text-gray-600 dark:text-gray-300">Διαθεσιμότητα:</span>
+                                                            <span class="font-medium text-green-500">{{ product.availability }}</span>
+                                                        </div>
+                                                        <div *ngIf="product.size" class="flex justify-between">
+                                                            <span class="font-semibold text-gray-600 dark:text-gray-300">Μέγεθος:</span>
+                                                            <span class="text-gray-700 dark:text-gray-400">{{ product.size }}</span>
+                                                        </div>
+                                                        <div *ngIf="product.color" class="flex justify-between">
+                                                            <span class="font-semibold text-gray-600 dark:text-gray-300">Χρώμα:</span>
+                                                            <span class="text-gray-700 dark:text-gray-400">{{ product.color }}</span>
+                                                        </div>
+                                                        <div *ngIf="product.description">
+                                                            <span class="font-semibold text-gray-600 dark:text-gray-300">Περιγραφή:</span>
+                                                            <p class="mt-1 text-gray-700 dark:text-gray-400 leading-relaxed">
+                                                                {{ product.description | truncateWords:15 }}
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                    <div class="flex justify-center w-full mt-2">
+
+                                                    <div class="flex justify-center w-full mt-4">
                                                         <button *ngIf="product.url" (click)="openProductLink(product.url)" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Δείτε περισσότερα</button>
                                                     </div>
                                                 </div>
@@ -209,6 +234,7 @@ export class Chat implements OnInit {
         try {
             this.chatService.sendMessage(message).subscribe({
                 next: (response: ChatResponse) => {
+                    console.log('Received from service:', JSON.stringify(response, null, 2));
                     this.isTyping = false;
                     if (response.products && response.products.length > 0) {
                         // Handle product response
