@@ -239,6 +239,10 @@ export class Chat implements OnInit {
                     if (response.products && response.products.length > 0) {
                         // Handle product response
                         this.addMessage('', false, response.products, response.intro, response.outro);
+                    } else if (response.intro || response.outro) {
+                        // Handle response with intro/outro but no products
+                        const combinedText = [response.intro, response.outro].filter(Boolean).join('\n\n');
+                        this.addMessage(combinedText, false);
                     } else if (response.reply) {
                         // Handle simple text response
                         this.addMessage(response.reply, false);

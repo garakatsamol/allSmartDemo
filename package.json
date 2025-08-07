@@ -5,7 +5,7 @@
         "ng": "ng",
         "start": "ng serve",
         "build": "ng build",
-        "build:prod": "ng build --configuration production --base-href /allSmartDemo/",
+        "build:prod": "ng build --configuration production --base-href /allSmartDemo/ --output-path=dist/allSmartDemo",
         "deploy": "npm run build:prod && npx ngh --dir=dist/allsmart/browser",
         "watch": "ng build --watch --configuration development",
         "format": "prettier --write \"**/*.{js,mjs,ts,mts,d.ts,html}\" --cache",
