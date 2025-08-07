@@ -1,0 +1,19 @@
+/* You can add global styles to this file, and also import other style files */
+@use './tailwind.css';
+@use 'primeicons/primeicons.css';
+
+/* Chat App Global Styles */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-family);
+}
+
+html, body {
+    height: 100%;
+}
+
+app-root {
+    display: block;
+    height: 100%;
+}
