@@ -79,13 +79,9 @@ interface ChatMessage {
                                                             <span class="font-semibold text-gray-600 dark:text-gray-300">Διαθεσιμότητα:</span>
                                                             <span class="font-medium text-green-500">{{ product.availability }}</span>
                                                         </div>
-                                                        <div *ngIf="product.size" class="flex justify-between">
-                                                            <span class="font-semibold text-gray-600 dark:text-gray-300">Μέγεθος:</span>
-                                                            <span class="text-gray-700 dark:text-gray-400">{{ product.size }}</span>
-                                                        </div>
-                                                        <div *ngIf="product.color" class="flex justify-between">
-                                                            <span class="font-semibold text-gray-600 dark:text-gray-300">Χρώμα:</span>
-                                                            <span class="text-gray-700 dark:text-gray-400">{{ product.color }}</span>
+                                                        <div *ngIf="product.sku" class="flex justify-between">
+                                                            <span class="font-semibold text-gray-600 dark:text-gray-300">SKU:</span>
+                                                            <span class="text-gray-700 dark:text-gray-400">{{ product.sku }}</span>
                                                         </div>
                                                         <div *ngIf="product.description">
                                                             <span class="font-semibold text-gray-600 dark:text-gray-300">Περιγραφή:</span>
@@ -129,6 +125,18 @@ interface ChatMessage {
                         <div class="flex gap-2 items-center">
                             <input type="text" [(ngModel)]="currentMessage" placeholder="Πώς μπορώ να σας βοηθήσω σήμερα;" class="flex-1 border border-slate-300 rounded focus:border-blue-500 focus:ring-blue-500 px-3 py-2" (keyup.enter)="sendMessage()" [disabled]="isTyping" #messageInput>
                             <button (click)="sendMessage()" [disabled]="!currentMessage.trim() || isTyping" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">Send</button>
+                        </div>
+                        <div class="mt-4 flex flex-wrap gap-2 justify-center">
+                            <button (click)="sendQuickQuestion('θέλω καρέκλες κήπου')" class="px-3 py-1 text-xs font-medium rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition">🪑 Καρέκλες Κήπου</button>
+                            <button (click)="sendQuickQuestion('δείξε μου τραπέζια')" class="px-3 py-1 text-xs font-medium rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition">🍽️ Τραπέζια</button>
+                            <button (click)="sendQuickQuestion('ψάχνω ξαπλώστρες κάτω από 100 ευρώ')" class="px-3 py-1 text-xs font-medium rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition">💰 Ξαπλώστρες &lt; 100€</button>
+                            <button (click)="sendQuickQuestion('θέλω πολυθρόνα πάνω από 200 ευρώ')" class="px-3 py-1 text-xs font-medium rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition">💰 Πολυθρόνες &gt; 200€</button>
+                            <button (click)="sendQuickQuestion('θέλω μαύρη μεταλλική καρέκλα')" class="px-3 py-1 text-xs font-medium rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition">🎨 Μαύρη Μεταλλική Καρέκλα</button>
+                            <button (click)="sendQuickQuestion('δείξε μου πλαστικά τραπέζια')" class="px-3 py-1 text-xs font-medium rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition">🎨 Πλαστικά Τραπέζια</button>
+                            <button (click)="sendQuickQuestion('φωτιστικά για τον κήπο')" class="px-3 py-1 text-xs font-medium rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition">� Φωτιστικά Κήπου</button>
+                            <button (click)="sendQuickQuestion('ψάχνω για εργαλεία κήπου')" class="px-3 py-1 text-xs font-medium rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition">🛠️ Εργαλεία Κήπου</button>
+                            <button (click)="sendQuickQuestion('πόσες καρέκλες έχετε;')" class="px-3 py-1 text-xs font-medium rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition">❓ Πόσες καρέκλες;</button>
+                            <button (click)="sendQuickQuestion('πόσα τραπέζια υπάρχουν διαθέσιμα;')" class="px-3 py-1 text-xs font-medium rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition">❓ Πόσα τραπέζια;</button>
                         </div>
                     </div>
                 </div>
@@ -187,8 +195,10 @@ export class Chat implements OnInit {
         this.updateConnectionStatus();
     }
 
-
-
+    sendQuickQuestion(question: string) {
+        this.currentMessage = question;
+        this.sendMessage();
+    }
 
     trackByMessage(index: number, message: ChatMessage): number {
         return message.id;

@@ -11,29 +11,26 @@ export interface ChatRequest {
 }
 
 export interface Product {
-    id?: number;
-    sku?: string;
-    title?: string;
-    url?: string;
-    price?: string;
+    _id: string;
+    id: number;
+    sku: string;
+    title: string;
+    url: string;
+    price: string;
     oldPrice?: string;
-    priceNumeric?: number;
-    points?: string;
-    imageUrl?: string;
-    description?: string;
-    discountTag?: string;
-    category?: string;
-    availability?: string;
-    size?: string; // Added
-    color?: string; // Added
-    extractedAt?: string;
-    source?: string;
-    sourceUrl?: string;
-    pageNumber?: number;
-    detectionMethod?: string;
-    elementTagName?: string;
-    elementClass?: string;
-    elementId?: string;
+    priceNumeric: number;
+    points: string;
+    imageUrl: string;
+    description: string;
+    category: string;
+    availability: string;
+    extractedAt: string;
+    source: string;
+    sourceUrl: string;
+    pageNumber: number;
+    detectionMethod: string;
+    elementTagName: string;
+    elementClass: string;
 }
 
 export interface ChatResponse {
@@ -51,7 +48,7 @@ export interface ChatResponse {
 })
 export class ChatService {
     // Webhook URLs
-    private productionWebhookUrl = 'https://locutus.app.n8n.cloud/webhook/e50506fd-9051-46c2-ab67-108db865a79d';
+    private productionWebhookUrl = 'https://allsmart.app.n8n.cloud/webhook/e50506fd-9051-46c2-ab67-108db865a79d';
     private useCorsProxy = true; // Enable CORS proxy - n8n has CORS misconfiguration (=* instead of *)
     private defaultHeaders = new HttpHeaders({
         'Content-Type': 'application/json'
@@ -306,95 +303,105 @@ export class ChatService {
      * Process the response from n8n (test or production)
      */
     private processResponse(response: any): ChatResponse {
-        console.log(`Processing response (PRODUCTION mode):`, response);
-        console.log('Response type:', typeof response);
-        console.log('Response structure:', JSON.stringify(response, null, 2));
+        console.log(`Processing response:`, response);
 
-        // Handle the new JSON format with intro/outro/products
-        if (response && Array.isArray(response.products)) {
-            return {
-                intro: response.intro,
-                products: response.products,
-                outro: response.outro,
-                timestamp: new Date().toISOString()
-            };
-        }
-        
-        // Handle array response with output field (your n8n format)
-        if (Array.isArray(response) && response.length > 0 && response[0].output) {
-            console.log('Extracting from array response with output field');
-            const output = response[0].output;
-            // Check if the output is a JSON string
-            try {
-                const parsedOutput = JSON.parse(output);
-                if(parsedOutput.products) {
-                    return {
-                        intro: parsedOutput.intro,
-                        products: parsedOutput.products,
-                        outro: parsedOutput.outro,
-                        timestamp: new Date().toISOString()
-                    };
-                }
-            } catch (e) {
-                // Not a JSON string, treat as plain text
+        // Helper function to recursively find the core data object
+        const findCoreData = (data: any): any => {
+            if (!data) {
+                return null;
             }
-            return {
-                reply: output,
-                timestamp: new Date().toISOString()
-            };
+
+            // If data is a string, try to clean and parse it
+            if (typeof data === 'string') {
+                try {
+                    // Clean markdown code fences if they exist
+                    let cleanString = data.trim();
+                    if (cleanString.startsWith('```json')) {
+                        const startIndex = cleanString.indexOf('{');
+                        const endIndex = cleanString.lastIndexOf('}');
+                        if (startIndex !== -1 && endIndex > startIndex) {
+                           cleanString = cleanString.substring(startIndex, endIndex + 1);
+                        }
+                    }
+                    const parsed = JSON.parse(cleanString);
+                    // After parsing, we might have the object we need, or we might need to search inside it
+                    return findCoreData(parsed);
+                } catch (e) {
+                    return null; // Not a parsable JSON string
+                }
+            }
+
+            // If it's an object, check for key properties directly
+            if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+                if (Array.isArray(data.products) || data.intro || data.outro) {
+                    return data; // Found it! This looks like our core data object.
+                }
+                // If not found, search recursively in its values
+                for (const key in data) {
+                    if (Object.prototype.hasOwnProperty.call(data, key)) {
+                        const found = findCoreData(data[key]);
+                        if (found) return found;
+                    }
+                }
+            }
+            
+            // If it's an array, search recursively in its items
+            if (Array.isArray(data)) {
+                 for (const item of data) {
+                    const found = findCoreData(item);
+                    if (found) return found;
+                }
+            }
+
+            return null;
+        };
+
+        const coreData = findCoreData(response);
+
+        if (coreData) {
+            // Case 1: It's a product response (must have a non-empty products array)
+            if (Array.isArray(coreData.products) && coreData.products.length > 0) {
+                console.log('Found product structure. Formatting as product response.', coreData);
+                
+                // Clean up the description for each product
+                coreData.products.forEach((product: Product) => {
+                    if (product.description) {
+                        // Remove the "Πληροφορίες" prefix and trim whitespace
+                        product.description = product.description.replace(/^Πληροφορίες\s*/, '').trim();
+                    }
+                });
+
+                return {
+                    intro: coreData.intro,
+                    products: coreData.products,
+                    outro: coreData.outro,
+                    timestamp: new Date().toISOString()
+                };
+            }
+            // Case 2: It's a text-only response (e.g., count query with intro/outro)
+            if (coreData.intro || coreData.outro) {
+                console.log('Found intro/outro structure without products. Formatting as text response.', coreData);
+                const combinedText = [coreData.intro, coreData.outro].filter(Boolean).join('\n\n');
+                return {
+                    reply: combinedText,
+                    timestamp: new Date().toISOString()
+                };
+            }
         }
-        
-        // Handle different response formats from n8n
-        if (typeof response === 'string') {
-            console.log('Converting string response to ChatResponse format');
-            return {
-                reply: response,
-                timestamp: new Date().toISOString()
-            };
-        }
-        
-        // If response has a 'reply' field, use it directly
-        if (response && response.reply) {
-            console.log('Using response.reply field');
-            return {
-                ...response,
-                reply: response.reply
-            };
-        }
-        
-        // If response has a 'message' field, map it to 'reply'
+
+        // Fallback for simple text replies or errors
+        let reply = 'Received an unparsable response.';
         if (response && response.message) {
-            console.log('Mapping response.message to reply');
-            return {
-                reply: response.message,
-                timestamp: response.timestamp || new Date().toISOString(),
-                confidence: response.confidence,
-                metadata: response.metadata
-            };
+            reply = response.message; // For n8n error messages
+        } else if (typeof response === 'string') {
+            reply = response;
+        } else if (response && typeof response === 'object') {
+            reply = "```json\n" + JSON.stringify(response, null, 2) + "\n```";
         }
-        
-        // If response has an 'output' field (single object)
-        if (response && response.output) {
-            console.log('Using response.output field');
-            return {
-                reply: response.output,
-                timestamp: new Date().toISOString()
-            };
-        }
-        
-        // If response is an object but doesn't have expected fields, stringify it
-        if (response && typeof response === 'object') {
-            console.log('Converting object response to string');
-            return {
-                reply: JSON.stringify(response),
-                timestamp: new Date().toISOString()
-            };
-        }
-        
-        // Fallback
-        console.log('Using fallback response format');
+
+        console.warn('Could not find valid data structure. Using fallback.', response);
         return {
-            reply: String(response || 'Received response from n8n but could not parse it'),
+            reply: reply,
             timestamp: new Date().toISOString()
         };
     }
